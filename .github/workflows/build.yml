@@ -70,9 +70,12 @@ jobs:
           } | tee "$GITHUB_WORKSPACE/results/config.txt"
           grep -qx 'CONFIG_TARGET_qualcommax_ipq50xx_DEVICE_h3c_rt3000=y' .config
           grep -Fq 'DEFAULT_PACKAGES += luci-app-store' include/target.mk
-          for package in luci-app-store luci-lib-taskd luci-lib-xterm taskd; do
+          for package in xz-utils luci-app-store luci-lib-taskd luci-lib-xterm taskd; do
+            ./scripts/config --enable "CONFIG_PACKAGE_${package}"
+          done
+          for package in xz-utils luci-app-store luci-lib-taskd luci-lib-xterm taskd; do
             if ! grep -qx "CONFIG_PACKAGE_${package}=y" .config; then
-              echo "Required iStore package is not enabled after make defconfig: ${package}"
+              echo "Required iStore package is not enabled after Kconfig repair: ${package}"
               exit 1
             fi
           done
