@@ -66,7 +66,7 @@
 
 ## iStoreOS 默认包与远端构建记录（2026-10-21）
 
-- 官方基线源码 `include/target.mk` 仅在 `ARCH` 为 `aarch64` 或 `x86_64` 时通过 `DEFAULT_PACKAGES += luci-app-store` 加入 iStore。run `39451706224` 输入 `.config` 虽显式选择 iStore 四包，`make defconfig` 后却未保留 `CONFIG_PACKAGE_luci-app-store=y`，最终 manifest 缺少 iStore 四包。run `39473347754` 配置日志进一步确认 `CONFIG_PACKAGE_TAR_XZ=y` 但 `CONFIG_PACKAGE_xz-utils` 不存在；官方 Kconfig 要求 `luci-app-store` 在启用 tar XZ 支持时同时启用 `xz-utils`。移植 `.config` 已加入 `CONFIG_DEFAULT_xz-utils=y`，下一次 run 需确认 defconfig 保留此默认包和 iStore 四包，再开始完整编译。
+- 官方基线源码 `include/target.mk` 仅在 `ARCH` 为 `aarch64` 或 `x86_64` 时通过 `DEFAULT_PACKAGES += luci-app-store` 加入 iStore。run `39451706224` 输入 `.config` 虽显式选择 iStore 四包，`make defconfig` 后却未保留 `CONFIG_PACKAGE_luci-app-store=y`，最终 manifest 缺少 iStore 四包。run `39473347754` 配置日志确认 `CONFIG_PACKAGE_TAR_XZ=y` 但 `CONFIG_PACKAGE_xz-utils` 不存在；官方 Kconfig 允许在关闭 tar XZ 支持时满足 iStore 依赖。尝试添加 `CONFIG_DEFAULT_xz-utils=y` 的 run `39477311412` 仍未启用该 meta 包，故移植 `.config` 改为显式关闭 `CONFIG_PACKAGE_TAR_XZ`，保留 `tar` 和 iStore 四包；新 workflow 会检查这一选择及 defconfig 后四包状态。
 - 官方 `store` feed 中 `luci-app-store` 依赖 `luci-lib-taskd`、`luci-lib-xterm` 和 `taskd`。这些是 iStore 功能依赖，不应为精简 Docker 而移除。
 - RT3000 设备定义排除 `docker`、`dockerd`、`docker-compose`、`containerd`、`runc`、`luci-app-dockerman` 和 Dockerman 中文包；`.config` 中这些项目均未设为 `y`。Docker 专属初始化、NAT、关机清理和 `/opt` 路径改写仅对 RT3000 跳过，iStoreOS 其余实现保留。
 - run `39451706224` 于 `2026-10-20 15:50:38 UTC` 开始固件构建，并于 `16:52:30 UTC` 以退出码 `0` 完成，用时 `3,712` 秒（61 分 52 秒）。factory UBI `12,713,984` 字节、sysupgrade `11,919,616` 字节、initramfs `12,088,216` 字节均低于 40 MiB 分区上限，artifact 压缩包 `35,854,914` 字节；但已下载并检查 manifest，确认缺少 iStore 四包，不能交付或刷写。此前仅核验 feeds/default rule 和镜像尺寸而漏核最终包清单，是错误结论。
