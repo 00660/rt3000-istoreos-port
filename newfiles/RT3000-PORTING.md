@@ -69,8 +69,8 @@
 - 官方基线源码 `include/target.mk` 使用 `DEFAULT_PACKAGES += luci-app-store` 加入 iStore。`make defconfig` 后 `.config` 不一定保留 `CONFIG_PACKAGE_luci-app-store=y` 显式行；应验证官方默认包规则和最终镜像包清单，不能把显式行缺失误判为 iStore 未启用。
 - 官方 `store` feed 中 `luci-app-store` 依赖 `luci-lib-taskd`、`luci-lib-xterm` 和 `taskd`。这些是 iStore 功能依赖，不应为精简 Docker 而移除。
 - RT3000 设备定义排除 `docker`、`dockerd`、`docker-compose`、`containerd`、`runc`、`luci-app-dockerman` 和 Dockerman 中文包；`.config` 中这些项目均未设为 `y`。Docker 专属初始化、NAT、关机清理和 `/opt` 路径改写仅对 RT3000 跳过，iStoreOS 其余实现保留。
-- GitHub Actions 曾因错误要求 `.config` 显式包含 iStore 包而在配置阶段退出。已修正为核验 RT3000 profile、官方 iStore 默认规则、设备包排除声明和 Docker 包未启用。提交 `39148ea` 的运行 `39451706224` 于 `2026-10-20 15:50:38 UTC` 进入固件构建；截至 `2026-10-20 16:52 UTC` 运行约 62 分钟，暂无镜像。比较远端构建耗时应从该步骤开始时间计算，不从 runner 准备时间计算。
-- Linux 构建主机 `192.168.2.157` 的容器 `rt3000-build-20261020` 正在 `/work` 执行 `FORCE_UNSAFE_CONFIGURE=1 make -j2`，日志 `/tmp/rt3000-build2.log`。已完成内核头文件和 musl，正在编译 `toolchain/gcc/final`；截至 `2026-10-21 00:52 Asia/Shanghai` 任务已运行约 4 小时 16 分。退出码文件 `/tmp/rt3000-build2.exit` 尚不存在，固件目录尚无产物，磁盘约剩 6.7 GiB。继续监看空间和进程，不要据运行中状态声称成功。
+- GitHub Actions 曾因错误要求 `.config` 显式包含 iStore 包而在配置阶段退出。已修正为核验 RT3000 profile、官方 iStore 默认规则、设备包排除声明和 Docker 包未启用。提交 `39148ea` 的运行 `39451706224` 于 `2026-10-20 15:50:38 UTC` 开始固件构建，并于 `16:52:30 UTC` 以退出码 `0` 完成，用时 `3,712` 秒（61 分 52 秒）。日志列出 factory UBI `12,713,984` 字节、sysupgrade `11,919,616` 字节、initramfs `12,088,216` 字节和 manifest `5,363` 字节；三种镜像均低于 40 MiB 分区上限，`rt3000-istoreos-images` artifact 已成功上传（压缩包 `35,854,914` 字节）。Artifact 下载在当前环境传输缓慢，文件名和尺寸已从 Actions 日志确认，但尚未读取 manifest 包清单内容。比较构建耗时应从固件构建步骤开始计算，不从 runner 准备时间计算。
+- Linux 构建主机 `192.168.2.157` 的容器 `rt3000-build-20261020` 正在 `/work` 执行 `FORCE_UNSAFE_CONFIGURE=1 make -j2`，日志 `/tmp/rt3000-build2.log`。截至 `2026-10-21 00:58 Asia/Shanghai`，构建已运行约 4 小时 21 分，仍在 GCC 14.3 `toolchain/gcc/final`；宿主 `docker top` 显示两个 `cc1plus` 进程各约占用 100% CPU，编译活动属实。日志最后修改于 `00:39:32`，退出码文件尚不存在，目标固件目录仍无产物。`/work` 可用空间约 6.7 GiB（94% 已用），主机可用内存约 1.8 GiB、交换区已用约 553 MiB。继续监看空间和进程，不要据运行中状态声称成功。
 
 不要把原厂活动槽作为移植设计约束，也不要在未经用户明确要求时刷写设备。
 
