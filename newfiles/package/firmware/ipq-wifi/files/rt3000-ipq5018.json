@@ -1,0 +1,12 @@
+[
+  {
+    "board": [
+      {
+        "names": [
+          "bus=ahb,qmi-chip-id=0,qmi-board-id=255,variant=H3C-RT3000-IPQ5018"
+        ],
+        "data": "rt3000/bdwlan.b10"
+      }
+    ]
+  }
+]

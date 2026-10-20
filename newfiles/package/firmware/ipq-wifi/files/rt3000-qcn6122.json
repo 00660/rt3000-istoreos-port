@@ -1,0 +1,18 @@
+[
+  {
+    "board": [
+      {
+        "names": [
+          "bus=ahb,qmi-chip-id=0,qmi-board-id=255,variant=H3C-RT3000-QCN6122-0"
+        ],
+        "data": "rt3000/bdwlan.b50"
+      },
+      {
+        "names": [
+          "bus=ahb,qmi-chip-id=0,qmi-board-id=255,variant=H3C-RT3000-QCN6122-1"
+        ],
+        "data": "rt3000/bdwlan.b60"
+      }
+    ]
+  }
+]

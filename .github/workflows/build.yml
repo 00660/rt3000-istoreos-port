@@ -1,0 +1,102 @@
+name: RT3000 iStoreOS build benchmark
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Check out private porting inputs
+        uses: actions/checkout@v4
+        with:
+          path: porting
+
+      - name: Record runner resources
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/results"
+          {
+            echo "CPUs: $(nproc)"
+            echo "Memory:"
+            free -h
+            echo "Disk before cleanup:"
+            df -h /
+          } | tee "$GITHUB_WORKSPACE/results/runner.txt"
+
+      - name: Reclaim unused runner disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          df -h / | tee -a "$GITHUB_WORKSPACE/results/runner.txt"
+
+      - name: Install OpenWrt build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3 python3-setuptools rsync unzip zlib1g-dev file wget
+
+      - name: Fetch the exact iStoreOS base revision
+        env:
+          OPENWRT_BASE: 96c7500f01945e2652ff71478aa74afea5503ccd
+        run: |
+          git init openwrt
+          git -C openwrt remote add origin https://github.com/istoreos/istoreos.git
+          git -C openwrt fetch --depth=1 origin "$OPENWRT_BASE"
+          git -C openwrt checkout --detach FETCH_HEAD
+
+      - name: Apply RT3000 changes and build configuration
+        run: |
+          git -C openwrt apply --check "$GITHUB_WORKSPACE/porting/changes.patch"
+          git -C openwrt apply "$GITHUB_WORKSPACE/porting/changes.patch"
+          cp -a porting/newfiles/. openwrt/
+          cp porting/.config openwrt/.config
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+          make defconfig
+          grep -q '^CONFIG_TARGET_qualcommax_ipq50xx_DEVICE_h3c_rt3000=y$' .config
+          grep -q '^CONFIG_PACKAGE_luci-app-store=y$' .config
+          ! grep -q '^CONFIG_PACKAGE_\(docker\|dockerd\|docker-compose\|containerd\|runc\|luci-app-dockerman\)=y$' .config
+
+      - name: Build firmware
+        run: |
+          set +e
+          start=$(date +%s)
+          FORCE_UNSAFE_CONFIGURE=1 make -C openwrt -j4 2>&1 | tee "$GITHUB_WORKSPACE/results/build.log"
+          result=${PIPESTATUS[0]}
+          end=$(date +%s)
+          set -e
+          elapsed=$((end - start))
+          {
+            echo "Build exit code: $result"
+            echo "Build seconds: $elapsed"
+            echo "Build minutes: $((elapsed / 60))"
+            echo "Disk after build:"
+            df -h /
+          } | tee -a "$GITHUB_WORKSPACE/results/runner.txt" "$GITHUB_STEP_SUMMARY"
+          exit "$result"
+
+      - name: List firmware images
+        if: success()
+        run: |
+          find openwrt/bin/targets/qualcommax/ipq50xx -maxdepth 1 -type f -printf '%f %s bytes\n' | tee "$GITHUB_WORKSPACE/results/images.txt"
+
+      - name: Upload firmware images
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rt3000-istoreos-images
+          path: openwrt/bin/targets/qualcommax/ipq50xx/*h3c_rt3000*
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload benchmark logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rt3000-build-benchmark
+          path: results/
+          if-no-files-found: warn
+          retention-days: 7
