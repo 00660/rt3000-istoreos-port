@@ -64,11 +64,19 @@
 - 已检查原厂 FDT、设备只读运行配置和上游 ipq50xx/QCA8K 实现。源码差异检查 `git diff --check` 曾通过；固件和 DTB 均未编译，设备未经刷写。
 - 当前设备只读 Telnet 参数来自 WorkBuddy 会话目录下已有脚本；不要把口令复制进记录、源码或答复。SSH 不可用。
 
+## iStoreOS 默认包与远端构建记录（2026-10-21）
+
+- 官方基线源码 `include/target.mk` 使用 `DEFAULT_PACKAGES += luci-app-store` 加入 iStore。`make defconfig` 后 `.config` 不一定保留 `CONFIG_PACKAGE_luci-app-store=y` 显式行；应验证官方默认包规则和最终镜像包清单，不能把显式行缺失误判为 iStore 未启用。
+- 官方 `store` feed 中 `luci-app-store` 依赖 `luci-lib-taskd`、`luci-lib-xterm` 和 `taskd`。这些是 iStore 功能依赖，不应为精简 Docker 而移除。
+- RT3000 设备定义排除 `docker`、`dockerd`、`docker-compose`、`containerd`、`runc`、`luci-app-dockerman` 和 Dockerman 中文包；`.config` 中这些项目均未设为 `y`。Docker 专属初始化、NAT、关机清理和 `/opt` 路径改写仅对 RT3000 跳过，iStoreOS 其余实现保留。
+- GitHub Actions 曾因错误要求 `.config` 显式包含 iStore 包而在配置阶段退出。已修正为核验 RT3000 profile、官方 iStore 默认规则、设备包排除声明和 Docker 包未启用。提交 `39148ea` 的运行 `39451706224` 已通过配置阶段并进入固件构建；最终结果和镜像产物待该 run 结束后确认。
+- Linux 构建主机 `192.168.2.157` 的容器 `rt3000-build-20261020` 正在 `/work` 执行 `FORCE_UNSAFE_CONFIGURE=1 make -j2`，日志 `/tmp/rt3000-build2.log`。当前已推进至 `toolchain/kernel-headers` 解包；退出码文件 `/tmp/rt3000-build2.exit` 尚不存在，固件目录尚无产物。最近磁盘余量约 7.4 GiB，继续监看空间和进程，不要据运行中状态声称成功。
+
 不要把原厂活动槽作为移植设计约束，也不要在未经用户明确要求时刷写设备。
 
 ## 下一步
 
-1. 在具备管理员权限的会话中启用 WSL 并把 Linux 发行版放到 D 盘，或使用独立 Linux 构建机；然后运行 `scripts/feeds update -a` 和 `scripts/feeds install -a`，配置 `qualcommax/ipq50xx` 目标，再编译 `h3c_rt3000`。处理 DTS、ipq-wifi 准备/安装和镜像生成错误，检查最终镜像大小、FIT 配置及 UBI 卷名。
-2. 构建前检查最终包清单，确认只剔除 Docker/Dockerman，iStoreOS 的 iStore、feeds、存储及其余默认组件仍在镜像中。
-3. 构建成功后再做设备升级验证；目标仅写 `rootfs` (`0x3100000/0x2800000`)，不更改 `rootfs_1` 或 U-Boot 环境。未经用户明确要求不要刷机。
+1. 等待 Linux 构建退出码或 GitHub Actions run `39451706224` 完成；失败时依据对应日志定位后继续，不重置 Linux 的已编译工具链。
+2. 构建完成后核验目标镜像体积不超过 40 MiB 分区布局、FIT 配置与 UBI 卷名，并检查最终镜像包清单：保留官方 iStore、存储和其他默认组件，只排除 Docker/Dockerman。
+3. 设备尚未刷写。后续若验证升级，目标仅写 `rootfs` (`0x3100000/0x2800000`)，不更改 `rootfs_1` 或 U-Boot 环境；未经用户明确要求不要刷机。
 4. 无需重复原厂 BDF 导出、失败的 TFTP/`nc` 传输、board-2 metadata 调查或活动槽调查。已有原始数据和编码器位置见上文。
