@@ -56,9 +56,16 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
           make defconfig
-          grep -q '^CONFIG_TARGET_qualcommax_ipq50xx_DEVICE_h3c_rt3000=y$' .config
-          grep -q '^CONFIG_PACKAGE_luci-app-store=y$' .config
-          ! grep -q '^CONFIG_PACKAGE_\(docker\|dockerd\|docker-compose\|containerd\|runc\|luci-app-dockerman\)=y$' .config
+          {
+            echo "Resolved RT3000/iStoreOS and container package settings:"
+            grep -E '^(CONFIG_TARGET_qualcommax_ipq50xx_DEVICE_h3c_rt3000|CONFIG_TARGET_PROFILE|CONFIG_PACKAGE_luci-app-store|CONFIG_PACKAGE_(docker|dockerd|docker-compose|containerd|runc|luci-app-dockerman|luci-i18n-dockerman-zh-cn))=' .config || true
+          } | tee "$GITHUB_WORKSPACE/results/config.txt"
+          grep -qx 'CONFIG_TARGET_qualcommax_ipq50xx_DEVICE_h3c_rt3000=y' .config
+          grep -qx 'CONFIG_PACKAGE_luci-app-store=y' .config
+          if grep -Eq '^CONFIG_PACKAGE_(docker|dockerd|docker-compose|containerd|runc|luci-app-dockerman|luci-i18n-dockerman-zh-cn)=y$' .config; then
+            echo "Docker packages must be excluded from the RT3000 image."
+            exit 1
+          fi
 
       - name: Build firmware
         run: |
