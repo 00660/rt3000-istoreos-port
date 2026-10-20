@@ -57,11 +57,17 @@ jobs:
           ./scripts/feeds install -a
           make defconfig
           {
-            echo "Resolved RT3000/iStoreOS and container package settings:"
+            echo "Resolved RT3000 profile and explicit container package settings:"
             grep -E '^(CONFIG_TARGET_qualcommax_ipq50xx_DEVICE_h3c_rt3000|CONFIG_TARGET_PROFILE|CONFIG_PACKAGE_luci-app-store|CONFIG_PACKAGE_(docker|dockerd|docker-compose|containerd|runc|luci-app-dockerman|luci-i18n-dockerman-zh-cn))=' .config || true
+            echo "Official iStoreOS default package rule:"
+            grep -F 'DEFAULT_PACKAGES += luci-app-store' include/target.mk
+            echo "RT3000 device package list:"
+            sed -n '/^define Device\/h3c_rt3000$/,/^endef$/p' target/linux/qualcommax/image/ipq50xx.mk
           } | tee "$GITHUB_WORKSPACE/results/config.txt"
           grep -qx 'CONFIG_TARGET_qualcommax_ipq50xx_DEVICE_h3c_rt3000=y' .config
-          grep -qx 'CONFIG_PACKAGE_luci-app-store=y' .config
+          grep -Fq 'DEFAULT_PACKAGES += luci-app-store' include/target.mk
+          grep -Fq -- '-docker -dockerd -docker-compose -containerd -runc' target/linux/qualcommax/image/ipq50xx.mk
+          grep -Fq -- '-luci-app-dockerman -luci-i18n-dockerman-zh-cn' target/linux/qualcommax/image/ipq50xx.mk
           if grep -Eq '^CONFIG_PACKAGE_(docker|dockerd|docker-compose|containerd|runc|luci-app-dockerman|luci-i18n-dockerman-zh-cn)=y$' .config; then
             echo "Docker packages must be excluded from the RT3000 image."
             exit 1
