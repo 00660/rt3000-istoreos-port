@@ -75,6 +75,13 @@
 - Linux 构建主机 `192.168.2.157` 的容器 `rt3000-build-20261020` 仍执行 `/work` 下的 `FORCE_UNSAFE_CONFIGURE=1 make -j2`，日志 `/tmp/rt3000-build2.log`。截至 `2026-10-21 03:43 Asia/Shanghai`，容器运行约 8 小时、make 约 7 小时，处于 `package/compile`，持续编译目标包（包括 OpenSSL、LuCI 基础库等）；容器 CPU 约 210%。磁盘剩余约 3.3 GiB（97% 已用）；退出码文件尚不存在，目标固件目录尚无镜像。不要重启或清理这一路构建。
 - 这一路 Linux 构建的 `.config` 明确包含 `CONFIG_PACKAGE_luci-app-store=y`、`CONFIG_PACKAGE_luci-lib-taskd=y`、`CONFIG_PACKAGE_luci-lib-xterm=y`、`CONFIG_PACKAGE_taskd=y`，且 `curl`、`tar`、`xz-utils` 等依赖已启用。此前状态脚本的正则只匹配 `CONFIG_DEFAULT_`，漏掉 `CONFIG_PACKAGE_`，造成“包未启用”的误报；后续以完整包名前缀检查。
 
+## RT3000 无线包清单纠正（2026-10-21）
+
+- 对 run `39479621828` 的完整 manifest 复核发现，虽然 `changes.patch` 的 `Device/h3c_rt3000` 声明了 `ath11k-firmware-ipq5018-qcn6122` 和 `ipq-wifi-rt3000`，但当时 `.config` 将两项都设为未启用，最终 manifest 也确实没有它们。此前“iStore 包齐全”仅适用于 iStore 功能包，不能据此认定无线适配完整；该 artifact 不作为完整 RT3000 固件交付。
+- 已在 `.config` 显式启用这两项无线包，并修改 GitHub workflow：`make defconfig` 后断言包仍为 `y`，最终镜像 manifest 断言两项均存在；报告会输出完整的 RT3000 必需包清单。Docker/Dockerman 的排除门禁保留。
+- Linux 主机 `192.168.2.157` 的旧容器 `rt3000-build-20261020` 在 `2026-10-21 03:51:55 Asia/Shanghai` 仍处于 `package/compile`，CPU 约 166%，磁盘剩余 3.0 GiB（98% 已用），退出码文件不存在且固件目录尚无镜像。该构建尚未完成；不得重启或清理。新的配置需由后续构建重新验证，不能拿旧容器的产物代替。
+- 新构建完成前，设备无线包是否实际进入固件仍未验证；设备也尚未刷写。
+
 不要把原厂活动槽作为移植设计约束，也不要在未经用户明确要求时刷写设备。
 
 ## 下一步
