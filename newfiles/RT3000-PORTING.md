@@ -66,10 +66,11 @@
 
 ## iStoreOS 默认包与远端构建记录（2026-10-21）
 
-- 官方基线源码 `include/target.mk` 仅在 `ARCH` 为 `aarch64` 或 `x86_64` 时通过 `DEFAULT_PACKAGES += luci-app-store` 加入 iStore。提交 `39148ea` 的输入 `.config` 显式选择了 iStore 四个包，但 run `39451706224` 执行 `make defconfig` 后没有保留 `CONFIG_PACKAGE_luci-app-store=y`，最终 manifest 也缺少 iStore 四包。因此不能仅凭默认规则或 feeds 安装成功判定启用；构建配置和最终 manifest 都必须显式断言。
+- 官方基线源码 `include/target.mk` 仅在 `ARCH` 为 `aarch64` 或 `x86_64` 时通过 `DEFAULT_PACKAGES += luci-app-store` 加入 iStore。run `39451706224` 输入 `.config` 虽显式选择 iStore 四包，`make defconfig` 后却未保留 `CONFIG_PACKAGE_luci-app-store=y`，最终 manifest 缺少 iStore 四包。run `39473347754` 配置日志进一步确认 `CONFIG_PACKAGE_TAR_XZ=y` 但 `CONFIG_PACKAGE_xz-utils` 不存在；官方 Kconfig 要求 `luci-app-store` 在启用 tar XZ 支持时同时启用 `xz-utils`。移植 `.config` 已加入 `CONFIG_DEFAULT_xz-utils=y`，下一次 run 需确认 defconfig 保留此默认包和 iStore 四包，再开始完整编译。
 - 官方 `store` feed 中 `luci-app-store` 依赖 `luci-lib-taskd`、`luci-lib-xterm` 和 `taskd`。这些是 iStore 功能依赖，不应为精简 Docker 而移除。
 - RT3000 设备定义排除 `docker`、`dockerd`、`docker-compose`、`containerd`、`runc`、`luci-app-dockerman` 和 Dockerman 中文包；`.config` 中这些项目均未设为 `y`。Docker 专属初始化、NAT、关机清理和 `/opt` 路径改写仅对 RT3000 跳过，iStoreOS 其余实现保留。
 - run `39451706224` 于 `2026-10-20 15:50:38 UTC` 开始固件构建，并于 `16:52:30 UTC` 以退出码 `0` 完成，用时 `3,712` 秒（61 分 52 秒）。factory UBI `12,713,984` 字节、sysupgrade `11,919,616` 字节、initramfs `12,088,216` 字节均低于 40 MiB 分区上限，artifact 压缩包 `35,854,914` 字节；但已下载并检查 manifest，确认缺少 iStore 四包，不能交付或刷写。此前仅核验 feeds/default rule 和镜像尺寸而漏核最终包清单，是错误结论。
+- run `39473347754` 提前在配置阶段失败，确认 `.config` 的 XZ 支持依赖是 iStore 被 defconfig 清除的原因。run `39476447074` 因 workflow 错把 `scripts/config` 目录当成可执行文件而立即失败，未进入编译；该命令已删除，不影响固件源码。
 - Linux 构建主机 `192.168.2.157` 的容器 `rt3000-build-20261020` 仍在 `/work` 执行 `FORCE_UNSAFE_CONFIGURE=1 make -j2`，日志 `/tmp/rt3000-build2.log`。截至 `2026-10-21 02:10 Asia/Shanghai`，容器运行约 6 小时，已到 Linux 6.12.94 内核补丁阶段；`patch` 子进程处于 `D` 状态并等待块设备 I/O（`rq_qos_wait`），容器 CPU 约 4.3%，属于慢 I/O 推进。磁盘剩余约 4.6 GiB（96% 已用）；退出码文件不存在、镜像目录无产物，不能宣称完成。
 - 这一路 Linux 构建的 `.config` 明确包含 `CONFIG_PACKAGE_luci-app-store=y`、`CONFIG_PACKAGE_luci-lib-taskd=y`、`CONFIG_PACKAGE_luci-lib-xterm=y`、`CONFIG_PACKAGE_taskd=y`，且 `curl`、`tar`、`xz-utils` 等依赖已启用。此前状态脚本的正则只匹配 `CONFIG_DEFAULT_`，漏掉 `CONFIG_PACKAGE_`，造成“包未启用”的误报；后续以完整包名前缀检查。
 
