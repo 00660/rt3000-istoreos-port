@@ -82,6 +82,13 @@
 - Linux 主机 `192.168.2.157` 的旧容器 `rt3000-build-20261020` 在 `2026-10-21 03:51:55 Asia/Shanghai` 仍处于 `package/compile`，CPU 约 166%，磁盘剩余 3.0 GiB（98% 已用），退出码文件不存在且固件目录尚无镜像。该构建尚未完成；不得重启或清理。新的配置需由后续构建重新验证，不能拿旧容器的产物代替。
 - 新构建完成前，设备无线包是否实际进入固件仍未验证；设备也尚未刷写。
 
+## LuCI 管理栈清单纠正（2026-10-21）
+
+- 进一步复核 run `39479621828` 的 manifest 和 `.config`，发现没有 `uhttpd`、`uhttpd-mod-ubus`、LuCI 管理页或 LuCI 软件包管理页。`luci-app-store` 虽已安装，但缺 Web 服务和管理界面，不能据此称为完整可用的 iStoreOS 管理系统。
+- 官方 iStoreOS `istoreos-25.12` feed `jjm2473/luci` 的 `luci-ssl` 集合依赖 `luci-light`、`libustream-mbedtls`、`px5g-mbedtls` 和 `luci-app-package-manager`；`luci-light` 提供 `uhttpd`、`uhttpd-mod-ubus`、管理页、防火墙页等基础界面。`istoreos-files/image-config.in` 默认选择简体中文，现有 Argon 主题继续由官方主题初始化脚本选用。
+- `.config` 已增加 `CONFIG_PACKAGE_luci-ssl=y`。GitHub workflow 的 defconfig 和最终 manifest 门禁现在覆盖 LuCI Web 服务、管理页、软件包管理页、HTTPS 证书工具、简体中文翻译，以及前述 RT3000 无线包与 iStore 依赖；Docker/Dockerman 排除检查保留。
+- run `39487961022`（提交 `5fd0fc7`）在无线包配置门禁通过后，因发现 LuCI 管理栈缺失而取消，固件构建步骤被取消且镜像上传步骤跳过。该 run 没有可交付 artifact。当前完整版本仍需重新构建和核验。
+
 不要把原厂活动槽作为移植设计约束，也不要在未经用户明确要求时刷写设备。
 
 ## 下一步
