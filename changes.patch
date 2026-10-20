@@ -167,7 +167,7 @@ diff --git a/include/target.mk b/include/target.mk
 @@ -101,3 +101,3 @@
  ifneq ($(filter aarch64 x86_64,$(ARCH)),)
 -  DEFAULT_PACKAGES += luci-app-store
-+  DEFAULT_PACKAGES += luci-app-store xz-utils
++  DEFAULT_PACKAGES += luci-app-store xz-utils luci-ssl
  endif
 diff --git a/target/linux/qualcommax/ipq50xx/base-files/etc/board.d/02_network b/target/linux/qualcommax/ipq50xx/base-files/etc/board.d/02_network
 index 09a68d7..3907cfb 100644

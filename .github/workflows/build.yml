@@ -62,11 +62,13 @@ jobs:
             echo "Resolved RT3000 wireless packages:"
             grep -E '^CONFIG_PACKAGE_(ath11k-firmware-ipq5018-qcn6122|ipq-wifi-rt3000)=' .config || true
             echo "Resolved LuCI web-management packages:"
-            grep -E '^CONFIG_(LUCI_LANG_zh_Hans|PACKAGE_(istoreos-files|libustream-mbedtls|luci-base|luci-lua-runtime|luci-mod-admin-full|luci-app-firewall|luci-app-package-manager|luci-proto-ppp|luci-theme-argon|luci-theme-bootstrap|rpcd-mod-luci|rpcd-mod-rrdns|uhttpd|uhttpd-mod-ubus|px5g-mbedtls|luci-i18n-base-zh-cn|luci-i18n-argon-zh-cn|luci-i18n-firewall-zh-cn|luci-i18n-package-manager-zh-cn))=' .config || true
+            grep -E '^CONFIG_(LUCI_LANG_zh_Hans|PACKAGE_(istoreos-files|libustream-mbedtls|luci|luci-ssl|luci-light|luci-base|luci-lua-runtime|luci-mod-admin-full|luci-mod-network|luci-mod-status|luci-mod-system|luci-app-firewall|luci-app-package-manager|luci-proto-ppp|luci-theme-argon|luci-theme-bootstrap|rpcd-mod-luci|rpcd-mod-rrdns|uhttpd|uhttpd-mod-ubus|px5g-mbedtls|luci-i18n-base-zh-cn|luci-i18n-argon-zh-cn|luci-i18n-firewall-zh-cn|luci-i18n-package-manager-zh-cn))=' .config || true
             echo "Resolved iStore packages and Kconfig dependencies:"
             grep -E '^CONFIG_(DEFAULT_luci-app-store|PACKAGE_(luci-app-store|luci-lib-taskd|luci-lib-xterm|taskd|TAR_XZ|xz-utils|tar)|LIBCURL_LDAP|USE_GLIBC)=' .config || true
             echo "luci-app-store Kconfig dependency definition:"
             sed -n '/^[[:space:]]*config PACKAGE_luci-app-store$/,/^[[:space:]]*help$/p' tmp/.config-package.in
+            echo "Official LuCI SSL collection dependencies:"
+            sed -n '/^[[:space:]]*config PACKAGE_luci-ssl$/,/^[[:space:]]*help$/p' tmp/.config-package.in
             echo "Official iStoreOS default package rule:"
             grep -F 'DEFAULT_PACKAGES += luci-app-store' include/target.mk
             echo "RT3000 device package list:"
@@ -74,11 +76,12 @@ jobs:
           } | tee "$GITHUB_WORKSPACE/results/config.txt"
           grep -qx 'CONFIG_TARGET_qualcommax_ipq50xx_DEVICE_h3c_rt3000=y' .config
           grep -qx 'CONFIG_LUCI_LANG_zh_Hans=y' .config
-          grep -Fq 'DEFAULT_PACKAGES += luci-app-store xz-utils' include/target.mk
+          grep -Fq 'DEFAULT_PACKAGES += luci-app-store xz-utils luci-ssl' include/target.mk
           for package in \
             ath11k-firmware-ipq5018-qcn6122 ipq-wifi-rt3000 \
-            istoreos-files libustream-mbedtls luci-base luci-lua-runtime \
-            luci-mod-admin-full luci-app-firewall luci-app-package-manager \
+            istoreos-files libustream-mbedtls luci-ssl luci-light \
+            luci-base luci-lua-runtime luci-mod-admin-full luci-mod-network \
+            luci-mod-status luci-mod-system luci-app-firewall luci-app-package-manager \
             luci-proto-ppp luci-theme-argon luci-theme-bootstrap \
             rpcd-mod-luci rpcd-mod-rrdns uhttpd uhttpd-mod-ubus px5g-mbedtls \
             luci-i18n-base-zh-cn luci-i18n-argon-zh-cn \
@@ -125,7 +128,8 @@ jobs:
           for package in \
             ath11k-firmware-ipq5018-qcn6122 ipq-wifi-rt3000 \
             istoreos-files libustream-mbedtls luci-base luci-lua-runtime \
-            luci-mod-admin-full luci-app-firewall luci-app-package-manager \
+            luci-mod-admin-full luci-mod-network luci-mod-status luci-mod-system \
+            luci-app-firewall luci-app-package-manager firewall4 \
             luci-proto-ppp luci-theme-argon luci-theme-bootstrap \
             rpcd-mod-luci rpcd-mod-rrdns uhttpd uhttpd-mod-ubus px5g-mbedtls \
             luci-i18n-base-zh-cn luci-i18n-argon-zh-cn \
