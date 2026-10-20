@@ -127,7 +127,7 @@ jobs:
           fi
           for package in \
             ath11k-firmware-ipq5018-qcn6122 ipq-wifi-rt3000 \
-            istoreos-files libustream-mbedtls luci-base luci-lua-runtime \
+            istoreos-files libustream-mbedtls20201210 luci-base luci-lua-runtime \
             luci-mod-admin-full luci-mod-network luci-mod-status luci-mod-system \
             luci-app-firewall luci-app-package-manager firewall4 \
             luci-proto-ppp luci-theme-argon luci-theme-bootstrap \
@@ -145,7 +145,7 @@ jobs:
             grep -E '^(docker|dockerd|docker-compose|containerd|runc|luci-app-dockerman|luci-i18n-dockerman-zh-cn) - ' "$manifest"
             exit 1
           fi
-          grep -E '^(ath11k-firmware-ipq5018-qcn6122|ipq-wifi-rt3000|istoreos-files|libustream-mbedtls|luci-base|luci-lua-runtime|luci-mod-admin-full|luci-app-firewall|luci-app-package-manager|luci-proto-ppp|luci-theme-argon|luci-theme-bootstrap|rpcd-mod-luci|rpcd-mod-rrdns|uhttpd|uhttpd-mod-ubus|px5g-mbedtls|luci-i18n-base-zh-cn|luci-i18n-argon-zh-cn|luci-i18n-firewall-zh-cn|luci-i18n-package-manager-zh-cn|xz-utils|luci-app-store|luci-lib-taskd|luci-lib-xterm|taskd) - ' "$manifest" | tee "$GITHUB_WORKSPACE/results/rt3000-required-packages.txt"
+          grep -E '^(ath11k-firmware-ipq5018-qcn6122|ipq-wifi-rt3000|istoreos-files|libustream-mbedtls20201210|luci-base|luci-lua-runtime|luci-mod-admin-full|luci-app-firewall|luci-app-package-manager|luci-proto-ppp|luci-theme-argon|luci-theme-bootstrap|rpcd-mod-luci|rpcd-mod-rrdns|uhttpd|uhttpd-mod-ubus|px5g-mbedtls|luci-i18n-base-zh-cn|luci-i18n-argon-zh-cn|luci-i18n-firewall-zh-cn|luci-i18n-package-manager-zh-cn|xz-utils|luci-app-store|luci-lib-taskd|luci-lib-xterm|taskd) - ' "$manifest" | tee "$GITHUB_WORKSPACE/results/rt3000-required-packages.txt"
           find openwrt/bin/targets/qualcommax/ipq50xx -maxdepth 1 -type f -printf '%f %s bytes\n' | tee "$GITHUB_WORKSPACE/results/images.txt"
 
       - name: Upload firmware images
