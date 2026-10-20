@@ -9,10 +9,10 @@
 - RT3000 DTS、ipq50xx 设备/40 MiB UBI 镜像定义、DSA 网络映射、ART 校准读取和 `rootfs` 升级分支已加入工作区。
 - 三份原厂 BDF 已从设备只读导出并通过字节数和 MD5 校验；专用 board-2 容器已生成，记录字段和 variant 已用官方编码器核对。首版启用集成 IPQ5018 和 QCN6122 第一实例；第二个 QCN6122 实例沿用上游默认禁用状态。
 - RT3000 镜像包排除 Docker 及 Dockerman 组件；iStore、feeds、普通磁盘挂载和标准升级流程保留。相关 iStoreOS 启动/默认配置脚本按 RT3000 条件跳过 Docker 专属操作。
-- 尚未完成固件构建和设备刷写。当前 Windows 环境没有 GNU `make`、`dtc`、Docker，也没有已安装的 WSL Linux 发行版；`wsl --status` 返回退出码 50，报告 WSL 未安装。当前会话不是管理员，查询 Windows 可选功能也返回“需要提升权限”，因此本轮无法启用 WSL；不要把源码静态检查当成构建通过。
-- `feeds.conf.default` 中的 packages、luci、routing、telephony、video、store、third 仓库均已克隆到 `feeds/`；`third` 当前浅克隆提交为 `335fa42`。store feed 内已确认有官方 `luci-app-store`，Luci feed 内有 `luci-app-dockerman`。尚未成功运行 `scripts/feeds update`/`install`，`package/feeds/` 尚未生成，因此完整最终包清单尚未解析。
-- RT3000 UBI 目标使用 40 MiB `IMAGE_SIZE`、128 MiB NAND 参数、128 KiB 擦除块和 2 KiB 页；上游 `append-ubi` 规则据此对产物执行 37,888 KiB 上限检查（含 FIT 内核）。最终镜像大小尚未实际测量。
-- 六个已修改的 shell 脚本分别通过 Git Bash `sh -n`；`git diff --check` 通过。DTS 编译、固件构建和设备验证仍未进行。
+- GitHub Actions run `39451706224` 虽以退出码 `0` 生成 factory、sysupgrade 和 initramfs 镜像，但最终 manifest 缺少 `luci-app-store`、`luci-lib-taskd`、`luci-lib-xterm`、`taskd`，该 artifact 不能作为目标固件；设备尚未刷写。当前 Windows 环境没有 GNU `make`、`dtc`、Docker，也没有已安装的 WSL Linux 发行版；`wsl --status` 返回退出码 50，报告 WSL 未安装。当前会话不是管理员，查询 Windows 可选功能也返回“需要提升权限”，因此本机不能复现完整构建；不要把源码静态检查当成构建通过。
+- `feeds.conf.default` 中的 packages、luci、routing、telephony、video、store、third 仓库及 `luci-app-store` 已在 GitHub 构建中由 `scripts/feeds update`/`install` 成功解析；当前本地移植仓库只保存输入补丁和配置，不保存生成的 `feeds/`、`package/feeds/`。旧 artifact manifest 中七个 Docker/Dockerman 包也均未出现，符合精简目标；下一版必须以 manifest 同时确认 iStore 四个包存在。
+- RT3000 UBI 目标使用 40 MiB `IMAGE_SIZE`、128 MiB NAND 参数、128 KiB 擦除块和 2 KiB 页；GitHub 产物实际为 factory UBI `12,713,984` 字节、sysupgrade `11,919,616` 字节、initramfs `12,088,216` 字节，均低于分区上限。
+- 六个已修改的 shell 脚本分别通过 Git Bash `sh -n`；GitHub 已完成 DTS、内核、包和镜像构建，`git diff --check` 通过，但 run `39451706224` 的固件因缺少 iStore 四个包而不合格。设备运行验证和刷写仍未进行。
 - 本轮实机只读检查 `/etc/openwrt_release` 得到 `OpenWrt Chaos Calmer 15.05.1`、目标 `ipq/ipq50xx`。设备有 `/bin/opkg`；已安装包查询没有命中 `istore`、`store` 或 `luci-app` 包名。由此确认实机当前系统不是官方 iStoreOS 25.12；市场页面是否由其他名称的组件提供，单凭这些包名查询不能判断。
 
 ## 设备证据
@@ -66,11 +66,12 @@
 
 ## iStoreOS 默认包与远端构建记录（2026-10-21）
 
-- 官方基线源码 `include/target.mk` 使用 `DEFAULT_PACKAGES += luci-app-store` 加入 iStore。`make defconfig` 后 `.config` 不一定保留 `CONFIG_PACKAGE_luci-app-store=y` 显式行；应验证官方默认包规则和最终镜像包清单，不能把显式行缺失误判为 iStore 未启用。
+- 官方基线源码 `include/target.mk` 仅在 `ARCH` 为 `aarch64` 或 `x86_64` 时通过 `DEFAULT_PACKAGES += luci-app-store` 加入 iStore。提交 `39148ea` 的输入 `.config` 显式选择了 iStore 四个包，但 run `39451706224` 执行 `make defconfig` 后没有保留 `CONFIG_PACKAGE_luci-app-store=y`，最终 manifest 也缺少 iStore 四包。因此不能仅凭默认规则或 feeds 安装成功判定启用；构建配置和最终 manifest 都必须显式断言。
 - 官方 `store` feed 中 `luci-app-store` 依赖 `luci-lib-taskd`、`luci-lib-xterm` 和 `taskd`。这些是 iStore 功能依赖，不应为精简 Docker 而移除。
 - RT3000 设备定义排除 `docker`、`dockerd`、`docker-compose`、`containerd`、`runc`、`luci-app-dockerman` 和 Dockerman 中文包；`.config` 中这些项目均未设为 `y`。Docker 专属初始化、NAT、关机清理和 `/opt` 路径改写仅对 RT3000 跳过，iStoreOS 其余实现保留。
-- GitHub Actions 曾因错误要求 `.config` 显式包含 iStore 包而在配置阶段退出。已修正为核验 RT3000 profile、官方 iStore 默认规则、设备包排除声明和 Docker 包未启用。提交 `39148ea` 的运行 `39451706224` 于 `2026-10-20 15:50:38 UTC` 开始固件构建，并于 `16:52:30 UTC` 以退出码 `0` 完成，用时 `3,712` 秒（61 分 52 秒）。日志列出 factory UBI `12,713,984` 字节、sysupgrade `11,919,616` 字节、initramfs `12,088,216` 字节和 manifest `5,363` 字节；三种镜像均低于 40 MiB 分区上限，`rt3000-istoreos-images` artifact 已成功上传（压缩包 `35,854,914` 字节）。Artifact 下载在当前环境传输缓慢，文件名和尺寸已从 Actions 日志确认，但尚未读取 manifest 包清单内容。比较构建耗时应从固件构建步骤开始计算，不从 runner 准备时间计算。
-- Linux 构建主机 `192.168.2.157` 的容器 `rt3000-build-20261020` 正在 `/work` 执行 `FORCE_UNSAFE_CONFIGURE=1 make -j2`，日志 `/tmp/rt3000-build2.log`。截至 `2026-10-21 00:58 Asia/Shanghai`，构建已运行约 4 小时 21 分，仍在 GCC 14.3 `toolchain/gcc/final`；宿主 `docker top` 显示两个 `cc1plus` 进程各约占用 100% CPU，编译活动属实。日志最后修改于 `00:39:32`，退出码文件尚不存在，目标固件目录仍无产物。`/work` 可用空间约 6.7 GiB（94% 已用），主机可用内存约 1.8 GiB、交换区已用约 553 MiB。继续监看空间和进程，不要据运行中状态声称成功。
+- run `39451706224` 于 `2026-10-20 15:50:38 UTC` 开始固件构建，并于 `16:52:30 UTC` 以退出码 `0` 完成，用时 `3,712` 秒（61 分 52 秒）。factory UBI `12,713,984` 字节、sysupgrade `11,919,616` 字节、initramfs `12,088,216` 字节均低于 40 MiB 分区上限，artifact 压缩包 `35,854,914` 字节；但已下载并检查 manifest，确认缺少 iStore 四包，不能交付或刷写。此前仅核验 feeds/default rule 和镜像尺寸而漏核最终包清单，是错误结论。
+- Linux 构建主机 `192.168.2.157` 的容器 `rt3000-build-20261020` 仍在 `/work` 执行 `FORCE_UNSAFE_CONFIGURE=1 make -j2`，日志 `/tmp/rt3000-build2.log`。截至 `2026-10-21 02:10 Asia/Shanghai`，容器运行约 6 小时，已到 Linux 6.12.94 内核补丁阶段；`patch` 子进程处于 `D` 状态并等待块设备 I/O（`rq_qos_wait`），容器 CPU 约 4.3%，属于慢 I/O 推进。磁盘剩余约 4.6 GiB（96% 已用）；退出码文件不存在、镜像目录无产物，不能宣称完成。
+- 这一路 Linux 构建的 `.config` 明确包含 `CONFIG_PACKAGE_luci-app-store=y`、`CONFIG_PACKAGE_luci-lib-taskd=y`、`CONFIG_PACKAGE_luci-lib-xterm=y`、`CONFIG_PACKAGE_taskd=y`，且 `curl`、`tar`、`xz-utils` 等依赖已启用。此前状态脚本的正则只匹配 `CONFIG_DEFAULT_`，漏掉 `CONFIG_PACKAGE_`，造成“包未启用”的误报；后续以完整包名前缀检查。
 
 不要把原厂活动槽作为移植设计约束，也不要在未经用户明确要求时刷写设备。
 

@@ -59,6 +59,10 @@ jobs:
           {
             echo "Resolved RT3000 profile and explicit container package settings:"
             grep -E '^(CONFIG_TARGET_qualcommax_ipq50xx_DEVICE_h3c_rt3000|CONFIG_TARGET_PROFILE|CONFIG_PACKAGE_luci-app-store|CONFIG_PACKAGE_(docker|dockerd|docker-compose|containerd|runc|luci-app-dockerman|luci-i18n-dockerman-zh-cn))=' .config || true
+            echo "Resolved iStore packages and Kconfig dependencies:"
+            grep -E '^CONFIG_(DEFAULT_luci-app-store|PACKAGE_(luci-app-store|luci-lib-taskd|luci-lib-xterm|taskd|TAR_XZ|xz-utils|tar)|LIBCURL_LDAP|USE_GLIBC)=' .config || true
+            echo "luci-app-store Kconfig dependency definition:"
+            sed -n '/^[[:space:]]*config PACKAGE_luci-app-store$/,/^[[:space:]]*help$/p' tmp/.config-package.in
             echo "Official iStoreOS default package rule:"
             grep -F 'DEFAULT_PACKAGES += luci-app-store' include/target.mk
             echo "RT3000 device package list:"
@@ -66,6 +70,12 @@ jobs:
           } | tee "$GITHUB_WORKSPACE/results/config.txt"
           grep -qx 'CONFIG_TARGET_qualcommax_ipq50xx_DEVICE_h3c_rt3000=y' .config
           grep -Fq 'DEFAULT_PACKAGES += luci-app-store' include/target.mk
+          for package in luci-app-store luci-lib-taskd luci-lib-xterm taskd; do
+            if ! grep -qx "CONFIG_PACKAGE_${package}=y" .config; then
+              echo "Required iStore package is not enabled after make defconfig: ${package}"
+              exit 1
+            fi
+          done
           grep -Fq -- '-docker -dockerd -docker-compose -containerd -runc' target/linux/qualcommax/image/ipq50xx.mk
           grep -Fq -- '-luci-app-dockerman -luci-i18n-dockerman-zh-cn' target/linux/qualcommax/image/ipq50xx.mk
           if grep -Eq '^CONFIG_PACKAGE_(docker|dockerd|docker-compose|containerd|runc|luci-app-dockerman|luci-i18n-dockerman-zh-cn)=y$' .config; then
@@ -94,6 +104,23 @@ jobs:
       - name: List firmware images
         if: success()
         run: |
+          manifest="$(find openwrt/bin/targets/qualcommax/ipq50xx -maxdepth 1 -type f -name 'istoreos-qualcommax-ipq50xx-h3c_rt3000.manifest' -print -quit)"
+          if [ -z "$manifest" ]; then
+            echo "RT3000 firmware manifest is missing."
+            exit 1
+          fi
+          for package in luci-app-store luci-lib-taskd luci-lib-xterm taskd; do
+            if ! grep -Eq "^${package} - " "$manifest"; then
+              echo "Required iStore package is missing from the firmware manifest: ${package}"
+              exit 1
+            fi
+          done
+          if grep -Eq '^(docker|dockerd|docker-compose|containerd|runc|luci-app-dockerman|luci-i18n-dockerman-zh-cn) - ' "$manifest"; then
+            echo "Docker/Dockerman package found in the RT3000 firmware manifest."
+            grep -E '^(docker|dockerd|docker-compose|containerd|runc|luci-app-dockerman|luci-i18n-dockerman-zh-cn) - ' "$manifest"
+            exit 1
+          fi
+          grep -E '^(luci-app-store|luci-lib-taskd|luci-lib-xterm|taskd) - ' "$manifest" | tee "$GITHUB_WORKSPACE/results/istore-packages.txt"
           find openwrt/bin/targets/qualcommax/ipq50xx -maxdepth 1 -type f -printf '%f %s bytes\n' | tee "$GITHUB_WORKSPACE/results/images.txt"
 
       - name: Upload firmware images
