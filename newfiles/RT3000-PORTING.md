@@ -86,8 +86,9 @@
 
 - 进一步复核 run `39479621828` 的 manifest 和 `.config`，发现没有 `uhttpd`、`uhttpd-mod-ubus`、LuCI 管理页或 LuCI 软件包管理页。`luci-app-store` 虽已安装，但缺 Web 服务和管理界面，不能据此称为完整可用的 iStoreOS 管理系统。
 - 官方 iStoreOS `istoreos-25.12` feed `jjm2473/luci` 的 `luci-ssl` 集合依赖 `luci-light`、`libustream-mbedtls`、`px5g-mbedtls` 和 `luci-app-package-manager`；`luci-light` 提供 `uhttpd`、`uhttpd-mod-ubus`、管理页、防火墙页等基础界面。`istoreos-files/image-config.in` 默认选择简体中文，现有 Argon 主题继续由官方主题初始化脚本选用。
-- `.config` 已增加 `CONFIG_PACKAGE_luci-ssl=y`。GitHub workflow 的 defconfig 和最终 manifest 门禁现在覆盖 LuCI Web 服务、管理页、软件包管理页、HTTPS 证书工具、简体中文翻译，以及前述 RT3000 无线包与 iStore 依赖；Docker/Dockerman 排除检查保留。
-- run `39487961022`（提交 `5fd0fc7`）在无线包配置门禁通过后，因发现 LuCI 管理栈缺失而取消，固件构建步骤被取消且镜像上传步骤跳过。该 run 没有可交付 artifact。当前完整版本仍需重新构建和核验。
+- run `39489341669` 的诊断 artifact 显示，虽然输入 `.config` 选择了 `luci-ssl`，`make defconfig` 后 LuCI 集合及其界面包均未保留，而两项 RT3000 无线包保持为 `y`。配置门禁因此失败，固件编译未启动。为避免集合符号被丢弃，当前改为显式选择 `luci-mod-admin-full`、`luci-app-firewall`、`luci-app-package-manager`、`uhttpd`、`uhttpd-mod-ubus`、`px5g-mbedtls` 等实际运行包。
+- `.config` 现在显式选择 LuCI 服务端、管理页、软件包管理页、HTTPS 支持、简体中文翻译和 Argon 主题。GitHub workflow 的 defconfig 与最终 manifest 门禁覆盖这些包，以及前述 RT3000 无线包和 iStore 依赖；Docker/Dockerman 排除检查保留。
+- run `39487961022`（提交 `5fd0fc7`）在无线包门禁通过后因 LuCI 栈缺失被取消；run `39489341669`（提交 `dfaa062`）在配置门禁阶段失败。两次都没有可交付固件 artifact。当前直接包选择修复仍需重新构建和核验。
 
 不要把原厂活动槽作为移植设计约束，也不要在未经用户明确要求时刷写设备。
 
