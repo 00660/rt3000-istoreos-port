@@ -152,7 +152,7 @@ index 7fab522..bb1ef9d 100644
 +	PAGESIZE := 2048
 +	NAND_SIZE := 128m
 +	IMAGE_SIZE := 40960k
-+	DEVICE_PACKAGES := ath11k-firmware-ipq5018-qcn6122 ipq-wifi-rt3000 \
++	DEVICE_PACKAGES := ath11k-firmware-ipq5018-qcn6122 ipq-wifi-rt3000 kmod-dsa-qca8k \
 +		-docker -dockerd -docker-compose -containerd -runc \
 +		-luci-app-dockerman -luci-i18n-dockerman-zh-cn
 +endef
@@ -192,8 +192,8 @@ index d4a913b..2e78a56 100644
  		ath11k_set_macflag
  		;;
 +	h3c,rt3000)
-+		caldata_extract "0:ART" 0x1000 0x20000
-+		wlan_mac=$(macaddr_add "$(mtd_get_mac_binary 0:ART 0)" 2)
++		caldata_extract "0:art" 0x1000 0x20000
++		wlan_mac=$(macaddr_add "$(mtd_get_mac_binary 0:art 0)" 2)
 +		ath11k_patch_mac "$wlan_mac" 0
 +		ath11k_set_macflag
 +		;;
@@ -205,8 +205,8 @@ index d4a913b..2e78a56 100644
  		ath11k_set_macflag
  		;;
 +	h3c,rt3000)
-+		caldata_extract "0:ART" 0x26800 0x20000
-+		wlan_mac=$(macaddr_add "$(mtd_get_mac_binary 0:ART 0)" 3)
++		caldata_extract "0:art" 0x26800 0x20000
++		wlan_mac=$(macaddr_add "$(mtd_get_mac_binary 0:art 0)" 3)
 +		ath11k_patch_mac "$wlan_mac" 0
 +		ath11k_set_macflag
 +		;;
@@ -218,8 +218,8 @@ index d4a913b..2e78a56 100644
  		ath11k_set_macflag
  		;;
 +	h3c,rt3000)
-+		caldata_extract "0:ART" 0x4c000 0x20000
-+		wlan_mac=$(macaddr_add "$(mtd_get_mac_binary 0:ART 0)" 4)
++		caldata_extract "0:art" 0x4c000 0x20000
++		wlan_mac=$(macaddr_add "$(mtd_get_mac_binary 0:art 0)" 4)
 +		ath11k_patch_mac "$wlan_mac" 0
 +		ath11k_set_macflag
 +		;;

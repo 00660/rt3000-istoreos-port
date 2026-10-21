@@ -78,7 +78,7 @@ jobs:
           grep -qx 'CONFIG_LUCI_LANG_zh_Hans=y' .config
           grep -Fq 'DEFAULT_PACKAGES += luci-app-store xz-utils luci-ssl' include/target.mk
           for package in \
-            ath11k-firmware-ipq5018-qcn6122 ipq-wifi-rt3000 \
+            ath11k-firmware-ipq5018-qcn6122 ipq-wifi-rt3000 kmod-dsa-qca8k \
             istoreos-files libustream-mbedtls luci-ssl luci-light \
             luci-base luci-lua-runtime luci-mod-admin-full luci-mod-network \
             luci-mod-status luci-mod-system luci-app-firewall luci-app-package-manager \
@@ -98,6 +98,44 @@ jobs:
             echo "Docker packages must be excluded from the RT3000 image."
             exit 1
           fi
+
+      - name: Patch iStoreOS overlay detection for UBI/NAND
+        run: |
+          set -e
+          mapfile -t files < <(find openwrt -path '*files/lib/functions/istoreos-boot.sh')
+          [ "${#files[@]}" -ge 1 ] || { echo "istoreos-boot.sh not found"; exit 1; }
+          for f in "${files[@]}"; do
+            echo "patching $f"
+            python3 - "$f" <<'PY'
+          import re, sys
+          p = sys.argv[1]
+          s = open(p, encoding='utf-8').read()
+          if 'rootfs_data UBI volume' in s:
+              print('already patched')
+              sys.exit(0)
+          insert = (
+              "\t# UBI/NAND targets: the overlay lives in the rootfs_data UBI volume\n"
+              "\tlocal _uv\n"
+              "\tfor _uv in /sys/class/ubi/ubi*_*; do\n"
+              "\t\t[ -r \"$_uv/name\" ] || continue\n"
+              "\t\tif [ \"$(cat $_uv/name 2>/dev/null)\" = \"rootfs_data\" ]; then\n"
+              "\t\t\tOVERLAY_DEV=\"/dev/${_uv##*/}\"\n"
+              "\t\t\tOVERLAY_FS=ubifs\n"
+              "\t\t\tFSTYPE=ubifs\n"
+              "\t\t\treturn 0\n"
+              "\t\tfi\n"
+              "\tdone\n"
+          )
+          pat = re.compile(r'(_get_overlay_partition_default\(\)[ \t]*\n\{[ \t]*\n)')
+          s2, n = pat.subn(lambda m: m.group(1) + insert, s, count=1)
+          if n != 1:
+              print('anchor not found')
+              sys.exit(1)
+          open(p, 'w', encoding='utf-8').write(s2)
+          print('ok')
+          PY
+          done
+          grep -n -A8 'rootfs_data UBI volume' "${files[0]}"
 
       - name: Build firmware
         run: |
@@ -126,7 +164,7 @@ jobs:
             exit 1
           fi
           for package in \
-            ath11k-firmware-ipq5018-qcn6122 ipq-wifi-rt3000 \
+            ath11k-firmware-ipq5018-qcn6122 ipq-wifi-rt3000 kmod-dsa-qca8k \
             istoreos-files libustream-mbedtls20201210 luci-base luci-lua-runtime \
             luci-mod-admin-full luci-mod-network luci-mod-status luci-mod-system \
             luci-app-firewall luci-app-package-manager firewall4 \
