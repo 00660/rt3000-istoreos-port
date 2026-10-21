@@ -291,30 +291,43 @@
 	reg = <0x0 0x4b000000 0x0 0x4500000>;
 };
 
+/*
+ * 2.4G（IPQ5018 内置射频，pd-1）。实测可用：AP + STA 中继同时工作。
+ * 写法对齐上游已支持的 ipq5018+QCN6122 机型（mx6200 / gl-x2000）：
+ *   - 不给 memory-region：fixed_mem_region 为假时驱动自己 dma_alloc，
+ *     给了反而让三路 PD 共用同一块 DDR 起始地址；
+ *   - qcom,ath11k-fw-memory-mode = 1（=2 会被驱动判非法并回落）；
+ *   - qcom,bdf-addr 用厂商 DTB 里 wifi@c000000 的值。
+ */
 &wifi {
 	status = "okay";
 	qcom,rproc = <&q6_wcss_pd1>;
 	qcom,userpd-subsys-name = "q6v5_wcss_userpd1";
 	qcom,ath11k-calibration-variant = "H3C-RT3000-IPQ5018";
-	/* memory-region 是必须的：ath11k 的
-	 * ath11k_qmi_assign_target_mem_chunk() 在 fixed_mem_region 模式下
-	 * 会用 of_parse_phandle(dev->of_node, "memory-region", 0) 取
-	 * HOST_DDR 区，取不到直接 -ENODEV，固件后续读 BDF 就是全零。
-	 * q6_region 由 ipq5018.dtsi 定义，本文件下方覆盖为 0x4b000000+0x4500000。
-	 * qcom,bdf-addr 已废弃：驱动用 hw_params.bdf_addr = 0x4BA00000。 */
-	memory-region = <&q6_region>;
-	qcom,ath11k-fw-memory-mode = <2>;
+	qcom,ath11k-fw-memory-mode = <1>;
+	qcom,bdf-addr = <0x4c400000>;
 };
 
+/*
+ * 5G（QCN6122，pd-2）暂时关闭。
+ *
+ * 它一起来固件就断言：
+ *   phyrf_bdf.c:6245 Assertion axis_value == ANTENNACHAIN_AXIS_Z failed
+ *   Thread name : wlan_platform  Process name :wlan1
+ * 该断言发生在 PD-2 的 wlan_platform 初始化阶段，会触发 cd00000.remoteproc
+ * fatal error 并复位整个 Q6 —— 2.4G 也跟着一起挂掉。
+ * 换过 bdwlan.b50 / 015 原厂 qcn6122/bdwlan.bin / 活 ART 0x26800 三种 BDF，
+ * 断言完全相同，说明不是 BDF 内容问题，而是 QCN6122 的 BDF/cal 没被正确送达。
+ * 5G 修好前必须保持 disabled，否则会连带打死 2.4G。
+ */
 &wifi1 {
-	status = "okay";
-	/* 5G 挂在 userpd2。memory-region 同样必须给，否则固件拿不到 DDR 段。 */
+	status = "disabled";
 	qcom,rproc = <&q6_wcss_pd2>;
 	qcom,userpd-subsys-name = "q6v5_wcss_userpd2";
 	qcom,ath11k-calibration-variant = "H3C-RT3000-QCN6122-0";
-	memory-region = <&q6_region>;
-	qcom,ath11k-fw-memory-mode = <2>;
-	qcom,m3-dump-addr = <0x4e200000>;
+	qcom,ath11k-fw-memory-mode = <1>;
+	qcom,bdf-addr = <0x4d100000>;
+	qcom,m3-dump-addr = <0x4df00000>;
 };
 
 &wifi2 {
@@ -322,7 +335,7 @@
 	 * 板上没这路射频，保持关闭避免抢内存。 */
 	status = "disabled";
 	qcom,ath11k-calibration-variant = "H3C-RT3000-QCN6122-1";
-	memory-region = <&q6_region>;
-	qcom,ath11k-fw-memory-mode = <2>;
-	qcom,m3-dump-addr = <0x4f300000>;
+	qcom,ath11k-fw-memory-mode = <1>;
+	qcom,bdf-addr = <0x4e500000>;
+	qcom,m3-dump-addr = <0x4f200000>;
 };
