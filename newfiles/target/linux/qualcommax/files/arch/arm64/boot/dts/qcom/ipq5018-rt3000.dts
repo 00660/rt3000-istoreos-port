@@ -301,10 +301,9 @@
 };
 
 &wifi1 {
-	status = "okay";
-	/* 原厂 DTB（AP-MP02.1, NAND 0xc6478c）里 5G 挂在 userpd2 上：
-	 *   q6v5_wcss_userpd2 -> variant H3C-RT3000-QCN6122-0, bdf-addr 0x4d100000
-	 *   第三个 qcn6122 节点是 disabled，所以这里是 pd2 不是 pd3。 */
+	/* 临时关闭：5G 的 BDF 断言会拖死共用的 Q6，连带 2.4G 一起崩。
+	 * 本分支只验证 2.4G，5G 修好前保持 disabled。 */
+	status = "disabled";
 	qcom,rproc = <&q6_wcss_pd2>;
 	qcom,userpd-subsys-name = "q6v5_wcss_userpd2";
 	qcom,ath11k-calibration-variant = "H3C-RT3000-QCN6122-0";
@@ -314,6 +313,7 @@
 };
 
 &wifi2 {
+	status = "disabled";
 	qcom,ath11k-calibration-variant = "H3C-RT3000-QCN6122-1";
 	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,bdf-addr = <0x4e500000>;
