@@ -124,8 +124,8 @@
 		 *   qca8k 90000.mdio-1:10 lan1: PHY [90000.mdio-1:00] 8337 internal PHY
 		 *   qca8k 90000.mdio-1:10 lan2: PHY [90000.mdio-1:01]
 		 *   qca8k 90000.mdio-1:10 lan3: PHY [90000.mdio-1:02]
-		 * 注意：原厂 DTB（NAND 0x36a69d8）里写的是 ethernet-switch@11、
-		 * PHY 在 1/2/3，但那套地址在本机不适用，别照抄。 */
+		 * 三个值（地址 0x10 / PHY 0-1-2 / 必须显式 phy-handle）都是实刷量出来的，
+		 * 不要再按任何 DTB 去"修正"它。 */
 		reg = <0x10>;
 		#address-cells = <1>;
 		#size-cells = <0>;
