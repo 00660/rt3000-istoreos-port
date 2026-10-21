@@ -100,6 +100,15 @@
 	pinctrl-0 = <&mdio1_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
+	/* 内核 6.12 起 mdio-ipq4019 会用寄存器里的分频值反推 MDC 速率，
+	 * 厂商 SSDK 已经把 MDIO1 的分频改成非 2 的幂，反推出来对不上就直接
+	 * 返回 -EINVAL（日志: probe failed with error -22）。这里把速率写死，
+	 * 100MHz/64 = 1562500Hz，正好落在驱动支持的 8..256 分频表里。 */
+	clock-frequency = <1562500>;
+
+	qca8337_phy0: ethernet-phy@0 {
+		reg = <0>;
+	};
 
 	qca8337_phy1: ethernet-phy@1 {
 		reg = <1>;
@@ -109,11 +118,7 @@
 		reg = <2>;
 	};
 
-	qca8337_phy3: ethernet-phy@3 {
-		reg = <3>;
-	};
-
-	switch0: ethernet-switch@11 {
+	switch0: ethernet-switch@17 {
 		compatible = "qca,qca8337";
 		reg = <17>;
 		#address-cells = <1>;
@@ -123,22 +128,22 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
+			port@1 {
+				reg = <1>;
+				label = "lan1";
+				phy-handle = <&qca8337_phy0>;
+			};
+
 			port@2 {
 				reg = <2>;
-				label = "lan1";
+				label = "lan2";
 				phy-handle = <&qca8337_phy1>;
 			};
 
 			port@3 {
 				reg = <3>;
-				label = "lan2";
-				phy-handle = <&qca8337_phy2>;
-			};
-
-			port@4 {
-				reg = <4>;
 				label = "lan3";
-				phy-handle = <&qca8337_phy3>;
+				phy-handle = <&qca8337_phy2>;
 			};
 
 			port@6 {
@@ -291,8 +296,8 @@
 
 &wifi1 {
 	status = "okay";
-	qcom,rproc = <&q6_wcss_pd2>;
-	qcom,userpd-subsys-name = "q6v5_wcss_userpd2";
+	qcom,rproc = <&q6_wcss_pd3>;
+	qcom,userpd-subsys-name = "q6v5_wcss_userpd3";
 	qcom,ath11k-calibration-variant = "H3C-RT3000-QCN6122-0";
 	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,bdf-addr = <0x4d100000>;
