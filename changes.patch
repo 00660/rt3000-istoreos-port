@@ -173,7 +173,7 @@ diff --git a/target/linux/qualcommax/ipq50xx/base-files/etc/board.d/02_network b
 index 09a68d7..3907cfb 100644
 --- a/target/linux/qualcommax/ipq50xx/base-files/etc/board.d/02_network
 +++ b/target/linux/qualcommax/ipq50xx/base-files/etc/board.d/02_network
-@@ -16,6 +16,9 @@ ipq50xx_setup_interfaces()
+@@ -16,6 +16,11 @@ ipq50xx_setup_interfaces()
  	glinet,gl-b3000)
  		ucidef_set_interfaces_lan_wan "lan1 lan2" "wan"
  		;;
