@@ -1,0 +1,22 @@
+#!/bin/sh /etc/rc.common
+# RT3000: 真实 MAC 只存在 U-Boot 环境分区 0:appsblenv（ethaddr=...），
+# 0:art 的 MAC 区是全 FF，所以不能走 nvmem，这里在 network 起来前刷进去。
+
+START=19
+
+start() {
+	. /lib/functions.sh
+	. /lib/functions/system.sh
+
+	local base
+	base=$(mtd_get_mac_ascii 0:appsblenv ethaddr)
+	[ -n "$base" ] || return 0
+
+	# WAN = 内置 GE PHY（dp1/eth0）
+	ip link set dev eth0 address "$base" 2>/dev/null
+
+	# LAN = QCA8337 的 lan1..lan3（dp2 为 DSA conduit，br-lan 继承 lan1）
+	ip link set dev lan1 address "$(macaddr_add "$base" 1)" 2>/dev/null
+	ip link set dev lan2 address "$(macaddr_add "$base" 2)" 2>/dev/null
+	ip link set dev lan3 address "$(macaddr_add "$base" 3)" 2>/dev/null
+}

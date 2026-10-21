@@ -178,7 +178,7 @@ index 09a68d7..3907cfb 100644
  		ucidef_set_interfaces_lan_wan "lan1 lan2" "wan"
  		;;
 +	h3c,rt3000)
-+		ucidef_set_interface_lan "eth0 lan1 lan2 lan3"
++		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "eth0"
 +		;;
  	cmcc,pz-l8|\
  	linksys,mx2000|\
@@ -193,7 +193,7 @@ index d4a913b..2e78a56 100644
  		;;
 +	h3c,rt3000)
 +		caldata_extract "0:art" 0x1000 0x20000
-+		wlan_mac=$(macaddr_add "$(mtd_get_mac_binary 0:art 0)" 2)
++		wlan_mac=$(macaddr_add "$(mtd_get_mac_ascii 0:appsblenv ethaddr)" 2)
 +		ath11k_patch_mac "$wlan_mac" 0
 +		ath11k_set_macflag
 +		;;
@@ -206,7 +206,7 @@ index d4a913b..2e78a56 100644
  		;;
 +	h3c,rt3000)
 +		caldata_extract "0:art" 0x26800 0x20000
-+		wlan_mac=$(macaddr_add "$(mtd_get_mac_binary 0:art 0)" 3)
++		wlan_mac=$(macaddr_add "$(mtd_get_mac_ascii 0:appsblenv ethaddr)" 3)
 +		ath11k_patch_mac "$wlan_mac" 0
 +		ath11k_set_macflag
 +		;;
@@ -219,7 +219,7 @@ index d4a913b..2e78a56 100644
  		;;
 +	h3c,rt3000)
 +		caldata_extract "0:art" 0x4c000 0x20000
-+		wlan_mac=$(macaddr_add "$(mtd_get_mac_binary 0:art 0)" 4)
++		wlan_mac=$(macaddr_add "$(mtd_get_mac_ascii 0:appsblenv ethaddr)" 4)
 +		ath11k_patch_mac "$wlan_mac" 0
 +		ath11k_set_macflag
 +		;;

@@ -51,6 +51,10 @@ jobs:
           git -C openwrt apply --check "$GITHUB_WORKSPACE/porting/changes.patch"
           git -C openwrt apply "$GITHUB_WORKSPACE/porting/changes.patch"
           cp -a porting/newfiles/. openwrt/
+          # 直接落盘的 base-files 不会自动生成 rc.d 软链，这里显式补上
+          chmod 0755 openwrt/target/linux/qualcommax/ipq50xx/base-files/etc/init.d/setmac
+          mkdir -p openwrt/target/linux/qualcommax/ipq50xx/base-files/etc/rc.d
+          ln -sf ../init.d/setmac openwrt/target/linux/qualcommax/ipq50xx/base-files/etc/rc.d/S19setmac
           cp porting/.config openwrt/.config
           cd openwrt
           ./scripts/feeds update -a
