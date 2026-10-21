@@ -99,31 +99,23 @@
 	status = "okay";
 	pinctrl-0 = <&mdio1_pins>;
 	pinctrl-names = "default";
-	reset-gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
 	/* 内核 6.12 起 mdio-ipq4019 会用寄存器里的分频值反推 MDC 速率，
 	 * 厂商 SSDK 已经把 MDIO1 的分频改成非 2 的幂，反推出来对不上就直接
 	 * 返回 -EINVAL（日志: probe failed with error -22）。这里把速率写死，
 	 * 100MHz/64 = 1562500Hz，正好落在驱动支持的 8..256 分频表里。 */
 	clock-frequency = <1562500>;
 
-	qca8337_phy0: ethernet-phy@0 {
-		reg = <0>;
-	};
-
-	qca8337_phy1: ethernet-phy@1 {
-		reg = <1>;
-	};
-
-	qca8337_phy2: ethernet-phy@2 {
-		reg = <2>;
-	};
-
-	switch0: ethernet-switch@10 {
+	switch0: ethernet-switch@11 {
 		compatible = "qca,qca8337";
-		/* QCA8337 的 MDIO 管理地址默认 0x10（内核 arch/arm/boot/dts/qcom/
-		 * qcom-ipq8064-rb3011.dts 里同款芯片就是 reg = <0x10>）。
-		 * 之前写 0x11 没有任何依据，交换机根本不会应答。 */
-		reg = <0x10>;
+		/* MDIO 管理地址 = 0x11，取自真机原厂 DTB（NAND 0x36a69d8，
+		 * model = "H3C RT3000"，节点名就是 ethernet-switch@11）。
+		 * 之前按 qcom-ipq8064-rb3011 改成 0x10 是错的——那是另一块板子。 */
+		reg = <0x11>;
+		dsa,member = <0 0>;
+		/* 交换机复位脚。原厂 DTB 把这个 GPIO 挂在 mdio@90000 上，但
+		 * ipq4019_mdio_probe() 根本不解析 reset-gpios，等于从来没复位过。
+		 * qca8k 驱动会在 probe 时拉低再释放，所以挪到交换机节点上才生效。 */
+		reset-gpios = <&tlmm 26 GPIO_ACTIVE_LOW>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -131,22 +123,22 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
+			/* LAN 口不写 phy-handle：qca8k 会自建 slave_mii_bus，
+			 * 用端口号当 PHY 地址自动连接内部 PHY（同
+			 * qcom-ipq8064-rb3011.dts 的写法）。 */
 			port@1 {
 				reg = <1>;
 				label = "lan1";
-				phy-handle = <&qca8337_phy0>;
 			};
 
 			port@2 {
 				reg = <2>;
 				label = "lan2";
-				phy-handle = <&qca8337_phy1>;
 			};
 
 			port@3 {
 				reg = <3>;
 				label = "lan3";
-				phy-handle = <&qca8337_phy2>;
 			};
 
 			port@6 {
