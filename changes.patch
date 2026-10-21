@@ -178,7 +178,9 @@ index 09a68d7..3907cfb 100644
  		ucidef_set_interfaces_lan_wan "lan1 lan2" "wan"
  		;;
 +	h3c,rt3000)
-+		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "eth0"
++		# 原厂没有独立的 WAN 口，eth0 与三个 LAN 口在同一个 QCA8337 交换芯片里，
++		# 物理口还没逐个确认，先全部放进 br-lan，保证任何一个口插上都能进管理页。
++		ucidef_set_interface_lan "eth0 lan1 lan2 lan3"
 +		;;
  	cmcc,pz-l8|\
  	linksys,mx2000|\
