@@ -288,7 +288,14 @@
 };
 
 &q6_region {
-	reg = <0x0 0x4b000000 0x0 0x4500000>;
+	/*
+	 * 内存分配重构（256MB 机型标准）：上游 ipq5018-qcn6122.dtsi 及
+	 * GL-B3000 / RAX3000Q / AX830 等同类 256MB 机型统一用 48MB。
+	 * 原 69MB 只用到 ~20MB 固件，浪费 49MB；缩到 48MB 后系统内存
+	 * 从 163MB 涨到 ~185MB，足以容纳双频 ath11k 的 dma_alloc（~85MB）
+	 * + 系统（~54MB）+ 双 AP/STA 运行开销。
+	 */
+	reg = <0x0 0x4b000000 0x0 0x3000000>;
 };
 
 /*
@@ -309,25 +316,20 @@
 };
 
 /*
- * 5G（QCN6122，pd-2）暂时关闭。
- *
- * 它一起来固件就断言：
- *   phyrf_bdf.c:6245 Assertion axis_value == ANTENNACHAIN_AXIS_Z failed
- *   Thread name : wlan_platform  Process name :wlan1
- * 该断言发生在 PD-2 的 wlan_platform 初始化阶段，会触发 cd00000.remoteproc
- * fatal error 并复位整个 Q6 —— 2.4G 也跟着一起挂掉。
- * 换过 bdwlan.b50 / 015 原厂 qcn6122/bdwlan.bin / 活 ART 0x26800 三种 BDF，
- * 断言完全相同，说明不是 BDF 内容问题，而是 QCN6122 的 BDF/cal 没被正确送达。
- * 5G 修好前必须保持 disabled，否则会连带打死 2.4G。
+ * 5G（QCN6122，pd-2）：启用，与 2.4G 组成双频双 AP。
+ * 原厂 RT3000 DTB 中 wifi1@c000000（board id 0x50、userpd2）的
+ * BDF 地址为 0x4d300000，M3 dump 地址为 0x4e200000。
+ * fw-memory-mode = 2（8 vdev/128 peer + 关 coldboot cal，最省内存；
+ * 该路实测 mode 2 可用，且需 mode 2 才能避免 ANTENNACHAIN 断言）。
  */
 &wifi1 {
-	status = "disabled";
+	status = "okay";
 	qcom,rproc = <&q6_wcss_pd2>;
 	qcom,userpd-subsys-name = "q6v5_wcss_userpd2";
 	qcom,ath11k-calibration-variant = "H3C-RT3000-QCN6122-0";
-	qcom,ath11k-fw-memory-mode = <1>;
-	qcom,bdf-addr = <0x4d100000>;
-	qcom,m3-dump-addr = <0x4df00000>;
+	qcom,ath11k-fw-memory-mode = <2>;
+	qcom,bdf-addr = <0x4d300000>;
+	qcom,m3-dump-addr = <0x4e200000>;
 };
 
 &wifi2 {
